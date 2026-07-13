@@ -11,14 +11,20 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.11",
+    "ai": "^7.0.23",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
     "framer-motion": "^11.11.17",
+    "lucide-react": "^1.24.0",
     "mongoose": "^8.8.3",
     "next": "^14.2.35",
     "next-auth": "^4.24.11",
+    "openai": "^6.46.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "stripe": "^22.3.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
