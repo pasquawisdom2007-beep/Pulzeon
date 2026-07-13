@@ -1,5 +1,6 @@
 import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
+import { authSecret } from "@/lib/auth-secret"
 
 export default withAuth(
   function middleware(req) {
@@ -13,6 +14,7 @@ export default withAuth(
     return NextResponse.next()
   },
   {
+    secret: authSecret,
     callbacks: {
       // Returning true means authorized. Any signed-in user passes here;
       // the role check for /admin happens in the middleware body above.

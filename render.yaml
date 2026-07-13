@@ -1,0 +1,27 @@
+# Render Blueprint for Pulzeon (Next.js single deployable app)
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: pulzeon
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.1
+      - key: MONGODB_URI
+        sync: false
+      - key: NEXTAUTH_SECRET
+        sync: false
+      # Set this to your Render URL after first deploy, e.g. https://pulzeon.onrender.com
+      - key: NEXTAUTH_URL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

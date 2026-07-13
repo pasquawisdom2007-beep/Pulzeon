@@ -3,10 +3,11 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { dbConnect } from "@/lib/mongodb"
 import { User } from "@/models/User"
+import { authSecret } from "@/lib/auth-secret"
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: authSecret,
   pages: {
     signIn: "/login",
   },
