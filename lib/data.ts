@@ -1,8 +1,40 @@
-import { dbConnect } from "@/lib/mongodb"
+import { dbConnect, hasDb } from "@/lib/mongodb"
 import { Product } from "@/models/Product"
 import { Order } from "@/models/Order"
 import { Update } from "@/models/Update"
 import { User } from "@/models/User"
+import { CATALOG, SEED_UPDATES } from "@/lib/catalog"
+
+/**
+ * Preview / no-database fallback. When MONGODB_URI is not configured (e.g. the
+ * v0 preview before the user connects MongoDB Atlas), the storefront still
+ * renders using the static catalog so nothing looks broken.
+ */
+function catalogAsDTO(): ProductDTO[] {
+  return CATALOG.map((p, i) => ({
+    id: `catalog-${i}`,
+    title: p.title,
+    slug: p.slug,
+    category: p.category,
+    shortDescription: p.shortDescription,
+    description: p.description,
+    price: p.price,
+    coverImage: p.coverImage,
+    included: p.included,
+    featured: p.featured,
+    premiumOnly: p.premiumOnly,
+  }))
+}
+
+function updatesAsDTO(): UpdateDTO[] {
+  const now = Date.now()
+  return SEED_UPDATES.map((u, i) => ({
+    id: `update-${i}`,
+    title: u.title,
+    description: u.description,
+    date: new Date(now - i * 86400000).toISOString(),
+  }))
+}
 
 export type ProductDTO = {
   id: string
@@ -42,6 +74,20 @@ function toProductDTO(p: any): ProductDTO {
 }
 
 export async function getProducts(opts?: { category?: string; search?: string }): Promise<ProductDTO[]> {
+  if (!hasDb) {
+    let list = catalogAsDTO()
+    if (opts?.category && opts.category !== "All") list = list.filter((p) => p.category === opts.category)
+    if (opts?.search) {
+      const q = opts.search.toLowerCase()
+      list = list.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.shortDescription.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q),
+      )
+    }
+    return list
+  }
   await dbConnect()
   const query: Record<string, any> = {}
   if (opts?.category && opts.category !== "All") query.category = opts.category
@@ -57,12 +103,21 @@ export async function getProducts(opts?: { category?: string; search?: string })
 }
 
 export async function getFeaturedProducts(limit = 4): Promise<ProductDTO[]> {
+  if (!hasDb) {
+    return catalogAsDTO()
+      .filter((p) => !p.premiumOnly)
+      .sort((a, b) => Number(b.featured) - Number(a.featured))
+      .slice(0, limit)
+  }
   await dbConnect()
   const products = await Product.find({ premiumOnly: false }).sort({ featured: -1, createdAt: -1 }).limit(limit).lean()
   return products.map(toProductDTO)
 }
 
 export async function getProductByIdOrSlug(idOrSlug: string): Promise<ProductDTO | null> {
+  if (!hasDb) {
+    return catalogAsDTO().find((p) => p.slug === idOrSlug || p.id === idOrSlug) ?? null
+  }
   await dbConnect()
   let doc: any = null
   if (/^[0-9a-fA-F]{24}$/.test(idOrSlug)) {
@@ -73,6 +128,7 @@ export async function getProductByIdOrSlug(idOrSlug: string): Promise<ProductDTO
 }
 
 export async function getLatestUpdate(): Promise<UpdateDTO | null> {
+  if (!hasDb) return updatesAsDTO()[0] ?? null
   await dbConnect()
   const u: any = await Update.findOne().sort({ date: -1, createdAt: -1 }).lean()
   if (!u) return null
@@ -80,6 +136,7 @@ export async function getLatestUpdate(): Promise<UpdateDTO | null> {
 }
 
 export async function getUpdates(): Promise<UpdateDTO[]> {
+  if (!hasDb) return updatesAsDTO()
   await dbConnect()
   const list = await Update.find().sort({ date: -1, createdAt: -1 }).lean()
   return list.map((u: any) => ({
@@ -163,6 +220,42 @@ export async function isSubscriptionActive(userId: string): Promise<boolean> {
   if (!user?.subscription?.active) return false
   if (user.subscription.expiresAt && new Date(user.subscription.expiresAt) <= new Date()) return false
   return true
+}
+
+export type AdminOrder = {
+  id: string
+  userEmail: string
+  type: string
+  amount: number
+  status: string
+  reference: string
+  proofUrl: string
+  itemTitles: string[]
+  subscriptionPlan: string | null
+  createdAt: string
+}
+
+export async function getAdminOrders(): Promise<AdminOrder[]> {
+  await dbConnect()
+  const orders = await Order.find().sort({ createdAt: -1 }).lean()
+  return orders.map((o: any) => ({
+    id: o._id.toString(),
+    userEmail: o.userEmail || "",
+    type: o.type,
+    amount: o.amount,
+    status: o.status,
+    reference: o.reference || "",
+    proofUrl: o.proofUrl || "",
+    itemTitles: (o.items || []).map((i: any) => i.title),
+    subscriptionPlan: o.subscriptionPlan ?? null,
+    createdAt: new Date(o.createdAt).toISOString(),
+  }))
+}
+
+export async function getAdminProducts(): Promise<ProductDTO[]> {
+  await dbConnect()
+  const products = await Product.find().sort({ createdAt: -1 }).lean()
+  return products.map(toProductDTO)
 }
 
 export async function getAdminStats() {

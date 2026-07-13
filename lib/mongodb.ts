@@ -2,6 +2,9 @@ import mongoose from "mongoose"
 
 const MONGODB_URI = process.env.MONGODB_URI
 
+/** True when a MongoDB connection string is configured. */
+export const hasDb = !!MONGODB_URI
+
 /**
  * Cached connection across hot reloads in dev and across serverless
  * invocations in production. Prevents connection storms.

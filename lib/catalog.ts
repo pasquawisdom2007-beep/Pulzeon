@@ -1,3 +1,17 @@
+export type ProductData = {
+  id?: string
+  title: string
+  slug: string
+  category: string
+  shortDescription: string
+  price: number
+  coverImage: string
+}
+
+export function formatNaira(amount: number): string {
+  return "₦" + Math.round(amount).toLocaleString("en-NG")
+}
+
 export type SeedProduct = {
   title: string
   slug: string
